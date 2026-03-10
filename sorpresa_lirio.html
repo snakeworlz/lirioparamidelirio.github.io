@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Sorpresa a mi delirio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,300;1,500&family=Fraunces:ital,wght@0,300;1,400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #05070f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Fraunces', serif;
+    }
+
+    /* ── PANTALLA DE LA CAJA ── */
+    #pantalla-caja {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      background: radial-gradient(ellipse 70% 80% at 50% 50%, #0e1028, #05070f);
+      transition: opacity 0.8s ease;
+    }
+
+    #pantalla-caja.ocultando {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* estrellas del fondo */
+    #pantalla-caja::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 15% 20%, rgba(255,230,150,0.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 85% 15%, rgba(200,180,255,0.5) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 45% 8%, rgba(255,255,200,0.7) 0%, transparent 100%),
+        radial-gradient(1px 1px at 70% 30%, rgba(255,200,150,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 25% 75%, rgba(180,200,255,0.5) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 90% 80%, rgba(255,220,150,0.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 10% 55%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 60% 85%, rgba(200,220,255,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 35% 42%, rgba(255,200,180,0.4) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 78% 58%, rgba(255,230,120,0.5) 0%, transparent 100%);
+      pointer-events: none;
+    }
+
+    /* hint arriba */
+    #hint {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 16px;
+      color: rgba(255, 220, 170, 0.4);
+      letter-spacing: 4px;
+      margin-bottom: 40px;
+      transition: opacity 0.4s;
+    }
+
+    /* contador de clics */
+    #contador-wrap {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 38px;
+    }
+
+    .punto {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255, 200, 100, 0.18);
+      border: 1.5px solid rgba(255, 200, 100, 0.3);
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .punto.activo {
+      background: rgba(255, 200, 80, 0.9);
+      border-color: rgba(255, 220, 120, 0.9);
+      box-shadow: 0 0 12px rgba(255, 180, 50, 0.8), 0 0 30px rgba(255, 150, 30, 0.3);
+      transform: scale(1.25);
+    }
+
+    /* SVG de la caja */
+    #caja-wrap {
+      position: relative;
+      cursor: pointer;
+      user-select: none;
+      filter: drop-shadow(0 20px 60px rgba(200, 130, 255, 0.15))
+              drop-shadow(0 8px 20px rgba(0,0,0,0.6));
+      transition: transform 0.15s ease;
+    }
+
+    #caja-wrap:hover { transform: scale(1.03) translateY(-3px); }
+    #caja-wrap:active { transform: scale(0.97) translateY(2px); }
+
+    #caja-wrap.temblando {
+      animation: temblar 0.4s ease;
+    }
+    @keyframes temblar {
+      0%   { transform: rotate(0deg) scale(1); }
+      20%  { transform: rotate(-4deg) scale(1.04); }
+      40%  { transform: rotate(4deg) scale(1.04); }
+      60%  { transform: rotate(-3deg) scale(1.02); }
+      80%  { transform: rotate(3deg) scale(1.02); }
+      100% { transform: rotate(0deg) scale(1); }
+    }
+
+    #caja-wrap.tercer-clic {
+      animation: explotar 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes explotar {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.18) rotate(-2deg); }
+      70%  { transform: scale(0.92) rotate(1deg); }
+      100% { transform: scale(0); opacity: 0; }
+    }
+
+    /* tapa de la caja animada */
+    #tapa {
+      transform-origin: 50% 100%;
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .tapa-abierta #tapa {
+      transform: rotate(-110deg) translateY(-10px);
+    }
+
+    /* texto abajo */
+    #texto-bajo {
+      margin-top: 36px;
+      font-family: 'Cormorant Garamon', serif;
+      font-style: italic;
+      font-size: 15px;
+      color: rgba(255, 210, 160, 0.35);
+      letter-spacing: 3px;
+      transition: all 0.4s;
+    }
+
+    /* particulas de confeti al abrir */
+    .particula {
+      position: fixed;
+      pointer-events: none;
+      z-index: 60;
+      border-radius: 50%;
+      animation: caer linear forwards;
+    }
+    @keyframes caer {
+      0%   { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
+      80%  { opacity: 1; }
+      100% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0); opacity: 0; }
+    }
+
+    /* ── CANVAS de la flor ── */
+    #canvas-flor {
+      position: fixed;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 1.2s ease 0.4s;
+      pointer-events: none;
+    }
+
+    #canvas-flor.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    #nombre {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 17px;
+      color: rgba(255, 235, 200, 0.3);
+      letter-spacing: 7px;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 5;
+      transition: opacity 1s ease 2s;
+    }
+
+    #nombre.visible { opacity: 1; }
+
+  </style>
+</head>
+<body>
+
+<!-- ══════════ PANTALLA DE LA CAJA ══════════ -->
+<div id="pantalla-caja">
+
+  <div id="hint">toca la caja para abrir el regalo jujuju</div>
+
+  <div id="contador-wrap">
+    <div class="punto" id="p1"></div>
+    <div class="punto" id="p2"></div>
+    <div class="punto" id="p3"></div>
+  </div>
+
+  <div id="caja-wrap" onclick="clicCaja()">
+    <svg id="caja-svg" width="260" height="280" viewBox="0 0 260 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+      <!-- ── SOMBRA ── -->
+      <ellipse cx="130" cy="276" rx="88" ry="8" fill="rgba(0,0,0,0.35)"/>
+
+      <!-- ── CUERPO DE LA CAJA ── -->
+      <!-- cara frontal -->
+      <path d="M30 130 L230 130 L230 262 Q230 268 224 268 L36 268 Q30 268 30 262 Z"
+            fill="url(#gradCuerpo)"/>
+      <!-- cara lateral derecha (profundidad) -->
+      <path d="M230 130 L248 118 L248 252 L230 262 Z"
+            fill="url(#gradLado)"/>
+      <!-- cara superior lateral -->
+      <path d="M30 130 L12 118 L248 118 L230 130 Z"
+            fill="url(#gradSuperior)"/>
+
+      <!-- franja vertical del lazo en el cuerpo -->
+      <path d="M112 130 L148 130 L148 268 L112 268 Z" fill="rgba(255,180,220,0.18)"/>
+      <!-- franja horizontal del lazo en el cuerpo -->
+      <path d="M30 185 L230 185 L230 208 L30 208 Z" fill="rgba(255,180,220,0.18)"/>
+
+      <!-- ── TAPA ── -->
+      <g id="tapa">
+        <!-- cara frontal de la tapa -->
+        <path d="M22 90 Q22 82 30 80 L230 80 Q238 80 238 90 L238 132 L22 132 Z"
+              fill="url(#gradTapa)"/>
+        <!-- cara lateral tapa -->
+        <path d="M238 90 L254 78 L254 120 L238 132 Z"
+              fill="url(#gradTapaLado)"/>
+        <!-- cara superior tapa -->
+        <path d="M22 90 L8 78 L254 78 L238 90 Z"
+              fill="url(#gradTapaSup)"/>
+
+        <!-- franja vertical lazo en tapa -->
+        <path d="M112 80 L148 80 L148 132 L112 132 Z" fill="rgba(255,180,220,0.22)"/>
+
+        <!-- ── LAZO BONITO ── -->
+        <!-- bucle izquierdo -->
+        <path d="M130 74 C110 74 90 58 95 44 C100 30 118 36 130 52 Z"
+              fill="url(#gradLazo)" opacity="0.95"/>
+        <!-- bucle derecho -->
+        <path d="M130 74 C150 74 170 58 165 44 C160 30 142 36 130 52 Z"
+              fill="url(#gradLazo2)" opacity="0.95"/>
+        <!-- nudo central -->
+        <ellipse cx="130" cy="70" rx="14" ry="10" fill="url(#gradNudo)"/>
+        <!-- brillos del lazo -->
+        <path d="M112 66 C118 60 124 58 130 60" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <path d="M148 66 C142 60 136 58 130 60" stroke="rgba(255,255,255,0.25)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+
+        <!-- decoracion: puntos brillantes en la tapa -->
+        <circle cx="55"  cy="104" r="3" fill="rgba(255,240,150,0.5)"/>
+        <circle cx="72"  cy="118" r="2" fill="rgba(255,200,200,0.4)"/>
+        <circle cx="185" cy="100" r="3" fill="rgba(200,220,255,0.5)"/>
+        <circle cx="200" cy="115" r="2" fill="rgba(255,230,150,0.4)"/>
+        <circle cx="168" cy="122" r="1.5" fill="rgba(255,180,220,0.5)"/>
+        <circle cx="65"  cy="92"  r="1.5" fill="rgba(200,255,200,0.45)"/>
+      </g>
+
+      <!-- decoracion en el cuerpo: estrellitas y puntos -->
+      <circle cx="60"  cy="155" r="2.5" fill="rgba(255,230,150,0.4)"/>
+      <circle cx="55"  cy="240" r="2"   fill="rgba(255,200,220,0.35)"/>
+      <circle cx="200" cy="160" r="2.5" fill="rgba(200,210,255,0.4)"/>
+      <circle cx="195" cy="245" r="2"   fill="rgba(255,220,150,0.35)"/>
+      <circle cx="78"  cy="220" r="1.5" fill="rgba(255,180,200,0.4)"/>
+      <circle cx="178" cy="225" r="1.5" fill="rgba(200,230,255,0.4)"/>
+
+      <!-- estrellitas pequeñas -->
+      <text x="58"  y="174" font-size="10" fill="rgba(255,220,130,0.45)" text-anchor="middle">✦</text>
+      <text x="200" y="230" font-size="8"  fill="rgba(200,210,255,0.4)"  text-anchor="middle">✦</text>
+      <text x="80"  y="255" font-size="7"  fill="rgba(255,180,210,0.4)"  text-anchor="middle">✦</text>
+
+      <!-- brillo general en la cara frontal -->
+      <path d="M35 135 L90 135 L90 262 L35 262 Z" fill="url(#gradBrillo)" opacity="0.12"/>
+
+      <!-- ── GRADIENTES ── -->
+      <defs>
+        <linearGradient id="gradCuerpo" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="#7c3fa0"/>
+          <stop offset="40%"  stop-color="#5a2880"/>
+          <stop offset="100%" stop-color="#3a1858"/>
+        </linearGradient>
+        <linearGradient id="gradLado" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"   stop-color="#3a1858"/>
+          <stop offset="100%" stop-color="#28103e"/>
+        </linearGradient>
+        <linearGradient id="gradSuperior" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%"   stop-color="#9a50c0"/>
+          <stop offset="100%" stop-color="#7c3fa0"/>
+        </linearGradient>
+        <linearGradient id="gradTapa" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="#b060d8"/>
+          <stop offset="100%" stop-color="#8840b8"/>
+        </linearGradient>
+        <linearGradient id="gradTapaLado" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"   stop-color="#6030a0"/>
+          <stop offset="100%" stop-color="#40208a"/>
+        </linearGradient>
+        <linearGradient id="gradTapaSup" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%"   stop-color="#c070e8"/>
+          <stop offset="100%" stop-color="#a850c8"/>
+        </linearGradient>
+        <linearGradient id="gradLazo" x1="1" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="#ffb8d8"/>
+          <stop offset="50%"  stop-color="#ff80b8"/>
+          <stop offset="100%" stop-color="#e060a0"/>
+        </linearGradient>
+        <linearGradient id="gradLazo2" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stop-color="#ffb8d8"/>
+          <stop offset="50%"  stop-color="#ff80b8"/>
+          <stop offset="100%" stop-color="#e060a0"/>
+        </linearGradient>
+        <radialGradient id="gradNudo" cx="40%" cy="35%">
+          <stop offset="0%"   stop-color="#ffd0e8"/>
+          <stop offset="60%"  stop-color="#ff80b8"/>
+          <stop offset="100%" stop-color="#d04090"/>
+        </radialGradient>
+        <linearGradient id="gradBrillo" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"   stop-color="white"/>
+          <stop offset="100%" stop-color="transparent"/>
+        </linearGradient>
+      </defs>
+
+    </svg>
+  </div>
+
+  <div id="texto-bajo">haz clic 3 veces tontita</div>
+
+</div>
+
+<!-- ══════════ CANVAS DE LA FLOR ══════════ -->
+<canvas id="canvas-flor"></canvas>
+<div id="nombre">Lirios para la chica mas chica</div>
+
+<script>
+
+// ─────────────────────────────
+//  LOGICA DE LA CAJA
+// ─────────────────────────────
+
+let clics = 0;
+const puntos = [
+  document.getElementById('p1'),
+  document.getElementById('p2'),
+  document.getElementById('p3')
+];
+
+function clicCaja() {
+  clics++;
+
+  // activar el punto del contador
+  if (clics <= 3) {
+    puntos[clics - 1].classList.add('activo');
+  }
+
+  const cajawrap = document.getElementById('caja-wrap');
+
+  if (clics === 1) {
+    // primer clic: temblar suave
+    cajawrap.classList.remove('temblando');
+    void cajawrap.offsetWidth; // reset animation
+    cajawrap.classList.add('temblando');
+    document.getElementById('texto-bajo').textContent = '2 mas vamos vamos';
+    document.getElementById('hint').style.opacity = '0';
+  }
+
+  if (clics === 2) {
+    // segundo clic: temblar mas fuerte + abrir tapa un poco
+    cajawrap.classList.remove('temblando');
+    void cajawrap.offsetWidth;
+    cajawrap.classList.add('temblando');
+    cajawrap.classList.add('tapa-abierta');
+    document.getElementById('texto-bajo').textContent = 'FALTA UNA JOSELYN';
+  }
+
+  if (clics === 3) {
+    // tercer clic: explosion y aparece la flor
+    cajawrap.classList.remove('temblando');
+    cajawrap.classList.add('tercer-clic');
+    document.getElementById('texto-bajo').textContent = '';
+    document.getElementById('hint').textContent = '';
+
+    lanzarConfeti();
+
+    setTimeout(() => {
+      const pantalla = document.getElementById('pantalla-caja');
+      pantalla.classList.add('ocultando');
+      setTimeout(() => {
+        pantalla.style.display = 'none';
+      }, 900);
+
+      // mostrar la flor
+      const canvasFlor = document.getElementById('canvas-flor');
+      canvasFlor.classList.add('visible');
+      document.getElementById('nombre').classList.add('visible');
+      iniciarFlor();
+    }, 500);
+  }
+}
+
+function lanzarConfeti() {
+  const colores = [
+    '#ff80b8', '#ffcc44', '#80ccff', '#88ff88',
+    '#ffaa66', '#cc88ff', '#ff6688', '#44ddbb'
+  ];
+
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+
+  for (let i = 0; i < 55; i++) {
+    const el = document.createElement('div');
+    el.className = 'particula';
+
+    const ang = Math.random() * Math.PI * 2;
+    const dist = 120 + Math.random() * 280;
+    const dx = Math.cos(ang) * dist;
+    const dy = Math.sin(ang) * dist - Math.random() * 180;
+    const rot = Math.random() * 720 - 360;
+    const tam = 5 + Math.random() * 9;
+    const dur = 0.6 + Math.random() * 0.7;
+    const delay = Math.random() * 0.15;
+
+    el.style.cssText = `
+      left: ${cx}px; top: ${cy}px;
+      width: ${tam}px; height: ${tam}px;
+      background: ${colores[Math.floor(Math.random() * colores.length)]};
+      --dx: ${dx}px; --dy: ${dy}px; --rot: ${rot}deg;
+      animation-duration: ${dur}s;
+      animation-delay: ${delay}s;
+      border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+      box-shadow: 0 0 6px currentColor;
+    `;
+
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), (dur + delay) * 1000 + 100);
+  }
+}
+
+
+// ─────────────────────────────
+//  FLOR (todo el codigo del lirio)
+// ─────────────────────────────
+
+function iniciarFlor() {
+  const cvs = document.getElementById('canvas-flor');
+  const ctx = cvs.getContext('2d');
+
+  let W = cvs.width  = window.innerWidth;
+  let H = cvs.height = window.innerHeight;
+
+  let bloom = 0;
+  let frame = 0;
+
+  const circulosBokeh = [];
+  for (let i = 0; i < 65; i++) {
+    circulosBokeh.push({
+      x: Math.random() * W, y: Math.random() * H,
+      radio: 3 + Math.random() * 24,
+      opacidad: 0.03 + Math.random() * 0.09,
+      velocidad: 0.5 + Math.random() * 1.2,
+      fase: Math.random() * Math.PI * 2,
+      calido: Math.random() < 0.55
+    });
+  }
+
+  const motas = [];
+  for (let i = 0; i < 22; i++) {
+    motas.push({
+      x: W/2 + (Math.random()-0.5)*40, y: H*0.38,
+      vx: (Math.random()-0.5)*0.45,
+      vy: -0.08 - Math.random()*0.38,
+      vida: Math.random(),
+      decay: 0.002 + Math.random()*0.003,
+      radio: 0.8 + Math.random()*2.2
+    });
+  }
+
+  function lerp(a,b,t){ return a+(b-a)*t; }
+  function clamp(v,mn,mx){ return Math.max(mn,Math.min(mx,v)); }
+  function easeCubic(t){ return t*t*(3-2*t); }
+  function easeOut(t){ return 1-Math.pow(1-t,3); }
+  function bezier(p0,p1,p2,p3,t){ const u=1-t; return u*u*u*p0+3*u*u*t*p1+3*u*t*t*p2+t*t*t*p3; }
+  function mezclarColor(c1,c2,t){ return [Math.round(lerp(c1[0],c2[0],t)),Math.round(lerp(c1[1],c2[1],t)),Math.round(lerp(c1[2],c2[2],t))]; }
+
+  function dibujarFondo() {
+    const g = ctx.createRadialGradient(W/2,H*0.42,0,W/2,H*0.42,W*0.72);
+    g.addColorStop(0,'#0f1120'); g.addColorStop(0.45,'#090c18'); g.addColorStop(1,'#030509');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    const v=ctx.createRadialGradient(W/2,H/2,H*0.18,W/2,H/2,H*0.8);
+    v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,0.65)');
+    ctx.fillStyle=v; ctx.fillRect(0,0,W,H);
+  }
+
+  function dibujarBokeh() {
+    for(const b of circulosBokeh){
+      b.fase+=b.velocidad*0.011;
+      const pulso=0.65+0.35*Math.sin(b.fase);
+      const alfa=b.opacidad*pulso*bloom;
+      ctx.save(); ctx.globalAlpha=alfa;
+      const g=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.radio);
+      if(b.calido){ g.addColorStop(0,'rgba(255,195,110,0.95)'); g.addColorStop(0.5,'rgba(255,150,50,0.2)'); }
+      else         { g.addColorStop(0,'rgba(160,190,255,0.9)');  g.addColorStop(0.5,'rgba(100,140,255,0.2)'); }
+      g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(b.x,b.y,b.radio,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=alfa*0.18;
+      ctx.strokeStyle=b.calido?'rgba(255,200,100,0.7)':'rgba(160,200,255,0.7)'; ctx.lineWidth=0.6;
+      ctx.beginPath();
+      for(let k=0;k<=6;k++){ const a=(k/6)*Math.PI*2-Math.PI/6; k===0?ctx.moveTo(b.x+Math.cos(a)*b.radio*0.88,b.y+Math.sin(a)*b.radio*0.88):ctx.lineTo(b.x+Math.cos(a)*b.radio*0.88,b.y+Math.sin(a)*b.radio*0.88); }
+      ctx.stroke(); ctx.restore();
+    }
+  }
+
+  function dibujarTallo(cx,baseY,progreso,balanceo){
+    const altoTallo=H*0.53*progreso;
+    const pf={x:cx+balanceo*0.4,y:baseY-altoTallo};
+    const c1x=cx+14+balanceo*0.2, c1y=lerp(baseY,pf.y,0.28);
+    const c2x=cx-10+balanceo*0.5, c2y=lerp(baseY,pf.y,0.68);
+    for(let t=0;t<=1;t+=0.004){
+      const x=bezier(cx,c1x,c2x,pf.x,t), y=bezier(baseY,c1y,c2y,pf.y,t);
+      const g=lerp(8.5,2.2,t), col=mezclarColor([22,48,18],[58,105,38],t);
+      ctx.beginPath(); ctx.arc(x,y,g*0.5,0,Math.PI*2);
+      ctx.fillStyle=`rgba(${col[0]},${col[1]},${col[2]},0.92)`; ctx.fill();
+    }
+    ctx.save(); ctx.globalAlpha=0.14*progreso; ctx.strokeStyle='rgba(150,230,90,0.8)'; ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.moveTo(cx+3,baseY-H*0.04); ctx.bezierCurveTo(c1x+3,c1y,c2x+3,c2y,pf.x+2,pf.y+H*0.035); ctx.stroke(); ctx.restore();
+    if(progreso>0.35){
+      const th=clamp((progreso-0.35)/0.3,0,1);
+      dibujarHoja(bezier(cx,c1x,c2x,pf.x,0.22),bezier(baseY,c1y,c2y,pf.y,0.22),th,-1,30);
+      dibujarHoja(bezier(cx,c1x,c2x,pf.x,0.48),bezier(baseY,c1y,c2y,pf.y,0.48),th*0.92,1,24);
+      dibujarHoja(bezier(cx,c1x,c2x,pf.x,0.70),bezier(baseY,c1y,c2y,pf.y,0.70),th*0.78,-1,17);
+    }
+    return pf;
+  }
+
+  function dibujarHoja(x,y,t,lado,largo){
+    if(t<=0)return;
+    const lx=x+lado*largo*3.8*t, ly=y-largo*0.9*t;
+    ctx.save(); ctx.globalAlpha=Math.min(1,t*1.1);
+    ctx.beginPath(); ctx.moveTo(x,y);
+    ctx.bezierCurveTo(x+lado*largo*2.0*t,y-largo*2.5*t,lx+lado*largo*0.5*t,ly-largo*0.5*t,lx,ly);
+    ctx.bezierCurveTo(lx-lado*largo*0.25*t,ly+largo*0.7*t,x+lado*largo*0.4*t,y+largo*0.55*t,x,y);
+    const gh=ctx.createLinearGradient(x,y,lx,ly);
+    gh.addColorStop(0,'rgba(25,60,20,0.96)'); gh.addColorStop(0.4,'rgba(48,105,32,0.95)'); gh.addColorStop(1,'rgba(35,80,22,0.9)');
+    ctx.fillStyle=gh; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.bezierCurveTo(x+lado*largo*1.6*t,y-largo*2.0*t,lx+lado*3,ly-2,lx,ly);
+    ctx.strokeStyle='rgba(110,195,70,0.22)'; ctx.lineWidth=0.9; ctx.stroke();
+    ctx.strokeStyle='rgba(90,175,55,0.14)'; ctx.lineWidth=0.5;
+    for(let v=1;v<=4;v++){
+      const vt=v/5,vx=lerp(x,lx,vt),vy=lerp(y,ly,vt)-largo*0.15*t;
+      ctx.beginPath(); ctx.moveTo(vx,vy); ctx.lineTo(vx+lado*largo*0.7*t*(1-vt),vy-largo*0.32*t); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function dibujarPetalo(cx,cy,angulo,largo,ancho,t,idx){
+    if(t<=0)return;
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(angulo);
+    const L=largo*t, A=ancho*t;
+    const curv=0.06+0.05*Math.sin(idx*2.1+0.8), ond=0.03*Math.sin(idx*3.7);
+    ctx.beginPath(); ctx.moveTo(0,0);
+    ctx.bezierCurveTo(-A*0.55,-L*0.18,-A*0.95+curv*L*0.35,-L*0.55,-A*0.42+curv*L*0.22+ond*A,-L*0.88);
+    ctx.bezierCurveTo(-A*0.18,-L*1.05,A*0.18,-L*1.05,A*0.42-curv*L*0.22-ond*A,-L*0.88);
+    ctx.bezierCurveTo(A*0.95-curv*L*0.35,-L*0.55,A*0.55,-L*0.18,0,0);
+    ctx.closePath();
+    const gp=ctx.createLinearGradient(0,0,0,-L);
+    gp.addColorStop(0.00,'rgba(255,205,155,0.98)'); gp.addColorStop(0.10,'rgba(255,228,200,0.99)');
+    gp.addColorStop(0.28,'rgba(255,248,235,1.0)');  gp.addColorStop(0.52,'rgba(255,255,255,1.0)');
+    gp.addColorStop(0.75,'rgba(250,253,255,1.0)');  gp.addColorStop(0.90,'rgba(240,248,255,0.98)');
+    gp.addColorStop(1.00,'rgba(228,242,255,0.94)');
+    ctx.shadowColor='rgba(0,0,0,0.4)'; ctx.shadowBlur=20; ctx.shadowOffsetX=curv*10; ctx.shadowOffsetY=4;
+    ctx.fillStyle=gp; ctx.fill();
+    ctx.shadowBlur=0; ctx.shadowOffsetX=0; ctx.shadowOffsetY=0;
+    ctx.strokeStyle='rgba(190,210,230,0.28)'; ctx.lineWidth=0.7; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,-L*0.02);
+    ctx.bezierCurveTo(curv*A*0.4,-L*0.35,curv*A*0.3,-L*0.68,curv*A*0.12,-L*0.96);
+    ctx.strokeStyle='rgba(210,160,110,0.22)'; ctx.lineWidth=1.1; ctx.stroke();
+    for(let v=0;v<5;v++){
+      const vt=(v+1)/6.5, vx=curv*A*lerp(0.4,0.12,vt), vy=-L*vt, alc=A*(1-vt)*0.75, al=0.13*(1-vt);
+      ctx.beginPath(); ctx.moveTo(vx,vy); ctx.quadraticCurveTo(vx-alc*0.5,vy-L*0.042,vx-alc,vy-L*0.015);
+      ctx.strokeStyle=`rgba(190,145,100,${al})`; ctx.lineWidth=0.55; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(vx,vy); ctx.quadraticCurveTo(vx+alc*0.5,vy-L*0.042,vx+alc,vy-L*0.015);
+      ctx.strokeStyle=`rgba(190,145,100,${al})`; ctx.stroke();
+    }
+    ctx.beginPath(); ctx.moveTo(-A*0.18,-L*0.12); ctx.bezierCurveTo(-A*0.38,-L*0.38,-A*0.32,-L*0.70,-A*0.08,-L*0.93);
+    const gb=ctx.createLinearGradient(-A*0.25,-L*0.2,-A*0.1,-L*0.9);
+    gb.addColorStop(0,'rgba(255,255,255,0)'); gb.addColorStop(0.4,'rgba(255,255,255,0.28)'); gb.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.strokeStyle=gb; ctx.lineWidth=A*0.22; ctx.lineCap='round'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(A*0.08,-L*0.2); ctx.bezierCurveTo(A*0.22,-L*0.45,A*0.18,-L*0.72,A*0.04,-L*0.94);
+    const gb2=ctx.createLinearGradient(A*0.15,-L*0.25,A*0.05,-L*0.9);
+    gb2.addColorStop(0,'rgba(255,255,255,0)'); gb2.addColorStop(0.5,'rgba(255,255,255,0.14)'); gb2.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.strokeStyle=gb2; ctx.lineWidth=A*0.10; ctx.stroke();
+    const gr=ctx.createRadialGradient(0,-L*0.1,0,0,-L*0.1,A*1.15);
+    gr.addColorStop(0,'rgba(255,140,60,0.28)'); gr.addColorStop(0.35,'rgba(255,175,90,0.12)');
+    gr.addColorStop(0.7,'rgba(255,210,150,0.05)'); gr.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=gr; ctx.beginPath(); ctx.moveTo(0,0);
+    ctx.bezierCurveTo(-A*0.55,-L*0.18,-A*0.85,-L*0.45,-A*0.6,-L*0.72);
+    ctx.bezierCurveTo(A*0.6,-L*0.72,A*0.85,-L*0.45,A*0.55,-L*0.18); ctx.closePath(); ctx.fill();
+    for(let p=0;p<7;p++){
+      const px=Math.sin(p*2.3)*A*0.45, py=-(L*0.12+p*L*0.065+Math.cos(p*1.7)*L*0.018);
+      ctx.beginPath(); ctx.arc(px,py,Math.max(0.01,(1.0-p*0.1)*t*1.4),0,Math.PI*2);
+      ctx.fillStyle=`rgba(200,100,40,${0.22-p*0.025})`; ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function dibujarEstambre(cx,cy,angulo,largo,t){
+    if(t<=0)return;
+    const L=largo*t, curv=4+Math.sin(angulo*5)*3;
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(angulo);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(curv,-L*0.52,curv*0.4,-L);
+    ctx.strokeStyle='rgba(195,225,150,0.68)'; ctx.lineWidth=0.9; ctx.stroke();
+    const ax=curv*0.4, ay=-L;
+    const ga=ctx.createRadialGradient(ax,ay-2,0,ax,ay,5.5*t);
+    ga.addColorStop(0,'rgba(255,175,15,1)'); ga.addColorStop(0.45,'rgba(225,110,8,0.9)'); ga.addColorStop(1,'rgba(175,65,0,0.4)');
+    ctx.beginPath(); ctx.ellipse(ax,ay,Math.max(0.1,4.5*t),Math.max(0.1,2.8*t),0.2,0,Math.PI*2);
+    ctx.fillStyle=ga; ctx.shadowColor='rgba(255,145,0,0.7)'; ctx.shadowBlur=9; ctx.fill(); ctx.shadowBlur=0;
+    ctx.beginPath(); ctx.moveTo(ax,ay-2.5*t); ctx.lineTo(ax,ay+2.5*t);
+    ctx.strokeStyle='rgba(160,70,0,0.4)'; ctx.lineWidth=0.6; ctx.stroke();
+    ctx.restore();
+  }
+
+  function dibujarPistilo(cx,cy,t){
+    if(t<=0)return;
+    const L=58*t;
+    ctx.save(); ctx.translate(cx,cy);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.bezierCurveTo(-2,-L*0.35,1.5,-L*0.68,0,-L);
+    ctx.strokeStyle='rgba(145,210,105,0.72)'; ctx.lineWidth=2.0; ctx.stroke();
+    for(let i=0;i<3;i++){
+      const ang=(i/3)*Math.PI*2, sx=Math.cos(ang)*4.0, sy=-L+Math.sin(ang)*1.8;
+      const ge=ctx.createRadialGradient(sx,sy,0,sx,sy,4.5*t);
+      ge.addColorStop(0,'rgba(175,240,125,0.95)'); ge.addColorStop(0.5,'rgba(120,200,75,0.7)'); ge.addColorStop(1,'rgba(75,155,40,0.2)');
+      ctx.beginPath(); ctx.arc(sx,sy,Math.max(0.01,4.0*t),0,Math.PI*2);
+      ctx.fillStyle=ge; ctx.shadowColor='rgba(160,255,100,0.55)'; ctx.shadowBlur=7; ctx.fill(); ctx.shadowBlur=0;
+    }
+    ctx.restore();
+  }
+
+  function dibujarHalo(cx,cy,t){
+    const g=ctx.createRadialGradient(cx,cy,10,cx,cy,220*t);
+    g.addColorStop(0,'rgba(255,230,170,0.11)'); g.addColorStop(0.3,'rgba(255,210,130,0.06)');
+    g.addColorStop(0.65,'rgba(180,160,255,0.03)'); g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,220*t,0,Math.PI*2); ctx.fill();
+    const g2=ctx.createRadialGradient(cx,cy,0,cx,cy,55*t);
+    g2.addColorStop(0,'rgba(255,250,200,0.18)'); g2.addColorStop(0.5,'rgba(255,230,160,0.07)'); g2.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(cx,cy,55*t,0,Math.PI*2); ctx.fill();
+  }
+
+  function actualizarPolen(cx,cy){
+    for(const m of motas){
+      m.x+=m.vx+Math.sin(m.vida*8)*0.25; m.y+=m.vy; m.vida-=m.decay;
+      if(m.vida<=0){
+        m.x=cx+(Math.random()-0.5)*35; m.y=cy-45;
+        m.vx=(Math.random()-0.5)*0.42; m.vy=-0.07-Math.random()*0.32;
+        m.vida=0.9+Math.random()*0.1;
+      }
+    }
+  }
+
+  function dibujarPolen(){
+    for(const m of motas){
+      const alfa=m.vida*0.78*bloom; if(alfa<=0)continue;
+      ctx.save(); ctx.globalAlpha=alfa;
+      ctx.shadowColor='rgba(255,195,45,0.9)'; ctx.shadowBlur=5;
+      ctx.fillStyle='rgba(255,205,55,0.92)';
+      ctx.beginPath(); ctx.arc(m.x,m.y,Math.max(0.01,m.radio*m.vida),0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function animar(){
+    frame++; bloom=Math.min(1,frame/150);
+    const balanceo=Math.sin(frame*0.0055)*4.5+Math.sin(frame*0.009)*1.8;
+    const cx=W/2, baseY=H*0.93;
+    ctx.clearRect(0,0,W,H);
+    dibujarFondo(); dibujarBokeh();
+    const pf=dibujarTallo(cx+balanceo*0.28,baseY,bloom,balanceo);
+    const fx=pf.x, fy=pf.y;
+    dibujarHalo(fx,fy,bloom);
+    const tP=clamp((bloom-0.28)/0.55,0,1);
+    const bf=balanceo*0.014;
+    for(let i=0;i<3;i++){
+      const ang=(i/3)*Math.PI*2-Math.PI/2+bf;
+      dibujarPetalo(fx,fy,ang,138,52,easeCubic(clamp((tP-i*0.07)*1.25,0,1))*0.90,i);
+    }
+    for(let i=0;i<3;i++){
+      const ang=(i/3)*Math.PI*2-Math.PI/2+Math.PI/3+bf;
+      dibujarPetalo(fx,fy,ang,128,46,easeCubic(clamp((tP-0.12-i*0.05)*1.3,0,1)),i+3);
+    }
+    const tE=clamp((bloom-0.68)/0.22,0,1);
+    for(let i=0;i<6;i++){
+      const ang=(i/6)*Math.PI*2-Math.PI/2, d=20*tE;
+      dibujarEstambre(fx+Math.cos(ang)*d*0.55,fy+Math.sin(ang)*d*0.28,ang+Math.sin(i*1.4)*0.28,56,easeOut(tE));
+    }
+    dibujarPistilo(fx,fy,easeOut(clamp((bloom-0.72)/0.2,0,1)));
+    actualizarPolen(fx,fy); dibujarPolen();
+    requestAnimationFrame(animar);
+  }
+
+  animar();
+
+  window.addEventListener('resize',()=>{
+    W=cvs.width=window.innerWidth;
+    H=cvs.height=window.innerHeight;
+  });
+}
+
+</script>
+</body>
+</html>
